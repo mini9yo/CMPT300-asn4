@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <libgen.h>
 
 void printInode(const char *filename);
 void printLongListing(const char *filename);

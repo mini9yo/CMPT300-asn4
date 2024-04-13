@@ -3,7 +3,7 @@
 // -i option for inode number
 void printInode(const char *filename){
     struct stat fileStat;
-    if(stat(filename, &fileStat) == 0){
+    if(lstat(filename, &fileStat) == 0){
         printf("%lu", (unsigned long)fileStat.st_ino);
     }else{
         perror("Error printing inode number");
@@ -15,8 +15,8 @@ void permissionMode(mode_t mode, char str[11]){
     strcpy(str, "----------");
     // File type
     if(S_ISDIR(mode)) str[0] = 'd'; // directory
-    if(S_ISLNK(mode)) str[0] = 'l'; // symbolic link
-    if(S_ISREG(mode)) str[0] = '-'; // regular file
+    else if(S_ISLNK(mode)) str[0] = 'l'; // symbolic link
+    else if(S_ISREG(mode)) str[0] = '-'; // regular file
     // User
     if(mode & S_IRUSR) str[1] = 'r'; 
     if(mode & S_IWUSR) str[2] = 'w';
@@ -32,15 +32,26 @@ void permissionMode(mode_t mode, char str[11]){
     str[10] = '\0';
 }
 
+void printSymbolicLink(const char *filename) {
+    char linkTarget[1024];
+    ssize_t len = readlink(filename, linkTarget, sizeof(linkTarget) - 1);
+    if (len != -1) {
+        linkTarget[len] = '\0';
+        printf(" -> %s", linkTarget);
+    }else{
+        perror("Error printing symbolic link");
+    }
+}
 
-void printLongListing(const char *filename){
+void printLongListing(const char *path){
     struct stat fileStat;
     struct passwd *pw;
     struct group *grp;
     struct tm *time;
     char permission[11];
     char timeStr[20];
-    if(stat(filename, &fileStat) == -1){
+
+    if(lstat(path, &fileStat) == -1){
         perror("Error printing long listing");
         return;
     }
@@ -57,7 +68,13 @@ void printLongListing(const char *filename){
     printf("%s ", grp? grp->gr_name : "Unknown");
     printf("%lu ", (unsigned long)fileStat.st_size);
     printf("%s ", timeStr);
-    printf("%s\n", filename);
+    printf("%s", basename(path));
+
+    if (S_ISLNK(fileStat.st_mode)) {
+        printSymbolicLink(path);
+    }
+
+    printf("\n");
 }
 
 void listDirectory(const char *path, int inodeOption, int longOption){
